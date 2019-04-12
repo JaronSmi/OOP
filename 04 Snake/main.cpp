@@ -9,6 +9,20 @@ int h = size * M;
 
 int dir, num = 4;
 
+struct Snake
+{
+  int x, y;
+} s[100];
+
+struct Fruct
+{
+  int x, y;
+} f;
+
+struct Fruct2
+{
+  int x, y;
+} f2;
 
 void
 Tick()
@@ -33,6 +47,12 @@ Tick()
     f.y = rand() % M;
   }
 
+  if ((s[0].x == f2.x) && (s[0].y == f2.y)) {
+    num+=2;
+    f2.x = rand() % N;
+    f2.y = rand() % M;
+  }
+
   if (s[0].x > N)
     s[0].x = 0;
   if (s[0].x < 0)
@@ -44,7 +64,7 @@ Tick()
 
   for (int i = 1; i < num; i++)
     if (s[0].x == s[i].x && s[0].y == s[i].y)
-      num = i;
+      num = 4;
 }
 
 int
@@ -54,12 +74,14 @@ main()
 
   RenderWindow window(VideoMode(w, h), "Snake Game!");
 
-  Texture t1, t2;
+  Texture t1, t2, t3;
   t1.loadFromFile("images/white.png");
   t2.loadFromFile("images/red.png");
+  t3.loadFromFile("images/green.png");
 
   Sprite sprite1(t1);
   Sprite sprite2(t2);
+  Sprite sprite3(t3);
 
   Clock clock;
   float timer = 0, delay = 0.1;
@@ -67,12 +89,33 @@ main()
   f.x = 10;
   f.y = 10;
 
+  f2.x = 15;
+  f2.y = 15;
+
   while (window.isOpen()) {
     float time = clock.getElapsedTime().asSeconds();
     clock.restart();
     timer += time;
 
-    
+    Event e;
+    while (window.pollEvent(e)) {
+      if (e.type == Event::Closed)
+        window.close();
+    }
+
+    if (Keyboard::isKeyPressed(Keyboard::Left))
+      dir = 1;
+    if (Keyboard::isKeyPressed(Keyboard::Right))
+      dir = 2;
+    if (Keyboard::isKeyPressed(Keyboard::Up))
+      dir = 3;
+    if (Keyboard::isKeyPressed(Keyboard::Down))
+      dir = 0;
+
+    if (timer > delay) {
+      timer = 0;
+      Tick();
+    }
 
     ////// draw  ///////
     window.clear();
@@ -90,6 +133,14 @@ main()
 
     sprite2.setPosition(f.x * size, f.y * size);
     window.draw(sprite2);
+
+    for (int i = 0; i < num; i++) {
+      sprite3.setPosition(s[i].x * size, s[i].y * size);
+      window.draw(sprite3);
+    }
+
+    sprite3.setPosition(f2.x * size, f2.y * size);
+    window.draw(sprite3);
 
     window.display();
   }
