@@ -9,21 +9,6 @@ int h = size * M;
 
 int dir, num = 4;
 
-struct Snake
-{
-  int x, y;
-} s[100];
-
-struct Fruct
-{
-  int x, y;
-} f;
-
-struct Fruct2
-{
-  int x, y;
-} f2;
-
 void
 Tick()
 {
@@ -42,13 +27,13 @@ Tick()
     s[0].y -= 1;
 
   if ((s[0].x == f.x) && (s[0].y == f.y)) {
-    num++;
+    num+=2;
     f.x = rand() % N;
     f.y = rand() % M;
   }
 
   if ((s[0].x == f2.x) && (s[0].y == f2.y)) {
-    num+=2;
+    num++;
     f2.x = rand() % N;
     f2.y = rand() % M;
   }
@@ -67,17 +52,123 @@ Tick()
       num = 4;
 }
 
+struct event_listener
+{
+	//window events
+	virtual void on_close(){}
+	virtual void on_gain_focus(){}
+	virtual void on_lose_focus(){}
+	virtual void on_resize(sf::Event::SizeEvent){}
+	
+	//keyboard Events
+	virtual void on_key_press(sf::Event::KeyEvent){}
+	virtual void on_key_release(sf::Event::KeyEvent){}
+	
+};
+
+
+struct event_source
+{
+	event_source(sf::Window &w) : window(&w){}
+	
+	void poll()
+	{
+		sf::Event e;
+		while(window->pollEvent(e))
+			process(e);
+	}
+	
+	void process(sf::Event const& e)
+	{
+		switch(e.type) {
+		case Event::Closed:
+			return notify([e](event_listener* l) {l->on_close(); });
+			
+		case Event::Resized:
+			return notify([e](event_listener* l) {l->on_resize(e.size); });
+			
+		case Event::KeyPressed:
+			return notify([e](event_listener* l) {l->on_key_press(e.key); });
+		
+		case Event::KeyReleased:
+			return notify([e](event_listener* l) {l->on_key_release(e.key) });
+		default:
+			break;
+		}
+	}
+	
+	template<typename F>
+	void notify (F fn)
+	{
+		for(event_listener* l : listeners)
+			fn(l);
+	}
+	
+	sf::Window* window;
+	
+	std::vector<event_listener*> listeners;
+};
+
+struct snake_app : event_listener
+{
+	snake_app() : 
+		prng(std::random_device()()),
+		window(VideoMode(w,h), "Snake Game!),
+		grid(prng)
+	{
+		window.setFrameRateLimit(120);
+	}
+	
+	void on_close() override
+	{
+		window.close();
+	}
+	
+	void on_key_press(sf::Event::KeyEvent) override
+	{
+		if(e.button == Keyboard::Left)
+			dir = 1;
+		if(e.button == Keyboard::Right)
+			dir = 2;
+	    if(e.button == Keyboard::Up)
+     		dir = 3;
+    	if(e.button == Keyboard::Down)
+      		dir = 0;
+	}
+};
+
+struct debug_listener : event_listener
+{
+	debug_listener(snake_app& a)
+		: app(&a)
+	{}
+	
+	void on_close() override
+	{
+		std::cerr << "closing...\n";
+	}
+		
+	snake_app* app;
+};
+ 
 int
 main()
 {
-  srand(time(0));
 
-  RenderWindow window(VideoMode(w, h), "Snake Game!");
+	snake_app app;
+	debug_listener debug(app)
+	
+	event_source events(app.window);
+	events.listen(app);
+	events.listen(debug);
+	
+	while(app.is_open())
+		events.poll();
 
-  Texture t1, t2, t3;
+ /* Texture t1, t2, t3;
   t1.loadFromFile("images/white.png");
-  t2.loadFromFile("images/red.png");
-  t3.loadFromFile("images/green.png");
+  t2.loadFromFile("images/green.png");
+  t3.loadFromFile("images/red.png");
 
   Sprite sprite1(t1);
   Sprite sprite2(t2);
@@ -103,14 +194,6 @@ main()
         window.close();
     }
 
-    if (Keyboard::isKeyPressed(Keyboard::Left))
-      dir = 1;
-    if (Keyboard::isKeyPressed(Keyboard::Right))
-      dir = 2;
-    if (Keyboard::isKeyPressed(Keyboard::Up))
-      dir = 3;
-    if (Keyboard::isKeyPressed(Keyboard::Down))
-      dir = 0;
 
     if (timer > delay) {
       timer = 0;
@@ -144,6 +227,7 @@ main()
 
     window.display();
   }
+
 
   return 0;
 }
